@@ -2,88 +2,71 @@
 
 An open-source CLI tool for managing Minecraft servers on Linux.
 
+> **Early development:** OpenMC currently downloads and registers **vanilla Minecraft server JARs**. Creating, starting, stopping, and listing server instances are not implemented yet.
+
 ## Features
 
-- **Mojang Loader Downloads**: Fetch and download official Minecraft server `.jar` versions directly from Mojang's version manifest with real-time progress bars.
-- **Local Registry**: Automatically tracks installed server loaders and metadata (version, release type, SHA-1, file path) in a local SQLite database (`~/.local/share/openmc/chest.db`).
-- **Rich Terminal UI**: Clean, formatted tables and download progress indicators powered by [Rich](https://github.com/Textualize/rich).
+- Download official Mojang vanilla server JARs with Rich progress bars.
+- Verify SHA-1 checksums and download sizes before installation.
+- Store installed loader metadata in SQLite. Reinstalling a version updates its record instead of duplicating it.
+- Respect `XDG_DATA_HOME` (default: `~/.local/share`).
 
 ## Requirements
 
-- **OS**: Linux
-- **Python**: `>= 3.10` (`python3` and `python3-venv`)
-- **Git**: `git`
+- Linux
+- Python 3.10 or newer (with `venv`/`pip`)
+- Git, for the installation script
 
 ## Installation
 
-Install directly using `curl`:
+Inspect [`install.sh`](install.sh) before running it. The script clones the `main` branch, creates an isolated Python environment, and adds a command under `~/.local/bin`.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/brasga-a/openmc/master/install.sh | bash
-```
+~~~sh
+curl -fsSL https://raw.githubusercontent.com/brasga-a/openmc/main/install.sh -o install.sh
+bash install.sh
+~~~
 
-### Manual Installation
+For a development checkout with [`uv`](https://docs.astral.sh/uv/):
 
-```bash
+~~~sh
 git clone https://github.com/brasga-a/openmc.git
 cd openmc
-./install.sh
-```
+uv sync
+uv run openmc --help
+~~~
+
+For fish, if `~/.local/bin` is not already on `PATH`:
+
+~~~fish
+fish_add_path ~/.local/bin
+~~~
 
 ## Usage
 
-### Download a Server Loader
-
-Download a specific Minecraft version (release or snapshot) to `~/.local/share/openmc/loaders/`:
-
-```bash
-openmc add <version>
-```
-
-**Example:**
-
-```bash
+~~~sh
 openmc add 1.21.4
-```
-
-### List Installed Loaders
-
-View all downloaded and registered server loaders in a formatted table:
-
-```bash
 openmc list --loaders
-```
+openmc --help
+~~~
 
-### List Servers
+`openmc list` is reserved for listing actual server instances and is not implemented yet.
 
-```bash
-openmc list
-```
+## Data storage
 
-## Data Storage
+Default location: `~/.local/share/openmc/` (or `$XDG_DATA_HOME/openmc/` when set to an absolute path).
 
-OpenMC stores its data in your user's local share directory following the XDG specification:
+- `chest.db` — SQLite metadata database.
+- `loaders/<version>.jar` — Verified Minecraft vanilla server JARs.
+- `env/` — The isolated environment created by `install.sh`.
 
-- **Database**: `~/.local/share/openmc/chest.db`
-- **Server JARs**: `~/.local/share/openmc/loaders/<version>.jar`
-- **CLI Environment**: `~/.local/share/openmc/env/`
+## Tests
 
-## Project Structure
+From the project root:
 
-```text
-openmc/
-├── install.sh
-├── pyproject.toml
-├── README.md
-└── src/
-    └── openmc/
-        ├── __init__.py
-        └── modules/
-            ├── cli.py       # CLI argument parsing and Rich table output
-            ├── database.py  # SQLite database initialization and queries
-            └── request.py   # Mojang API requests and JAR downloader
-```
+~~~sh
+uv run python -m unittest discover -s tests -v
+~~~
 
 ## License
 
-Open-source project. See license details in the repository.
+See [LICENSE](LICENSE).

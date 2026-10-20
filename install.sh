@@ -2,57 +2,67 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/brasga-a/openmc.git"
-INSTALL_DIR="${HOME}/.local/share/openmc/env"
+REPO_BRANCH="main"
+DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+if [[ "${DATA_HOME}" != /* ]]; then
+    DATA_HOME="${HOME}/.local/share"
+fi
+APP_DIR="${DATA_HOME}/openmc"
+INSTALL_DIR="${APP_DIR}/env"
 BIN_DIR="${HOME}/.local/bin"
 
 echo "==> Installing OpenMC..."
-
-# 1. Check dependencies
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "Error: python3 is not installed. Please install Python 3 first." >&2
-    exit 1
-fi
-
-if ! command -v git >/dev/null 2>&1; then
-    echo "Error: git is not installed. Please install git first." >&2
-    exit 1
-fi
+for command in python3 git; do
+    if ! command -v "${command}" >/dev/null 2>&1; then
+        echo "Error: ${command} is required." >&2
+        exit 1
+    fi
+done
 
 if ! python3 -m venv --help >/dev/null 2>&1; then
-    echo "Error: python3-venv is not available. Please install the python3-venv package for your distribution." >&2
+    echo "Error: Python venv support is required." >&2
     exit 1
 fi
 
-# 2. Clone repository to a temporary directory
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "${TMP_DIR}"' EXIT
+mkdir -p "${APP_DIR}"
+TMP_ENV="$(mktemp -d "${APP_DIR}/.env.XXXXXXXX")"
+BACKUP_ENV=""
+cleanup() {
+    rm -rf "${TMP_DIR}" "${TMP_ENV}"
+}
+trap cleanup EXIT
 
-echo "==> Fetching source code from ${REPO_URL}..."
-git clone --depth 1 --quiet "${REPO_URL}" "${TMP_DIR}/openmc"
+echo "==> Fetching branch ${REPO_BRANCH}..."
+git clone --depth 1 --branch "${REPO_BRANCH}" --quiet "${REPO_URL}" "${TMP_DIR}/openmc"
 
-# 3. Create isolated virtual environment
-echo "==> Setting up isolated Python environment at ${INSTALL_DIR}..."
-rm -rf "${INSTALL_DIR}"
-mkdir -p "$(dirname "${INSTALL_DIR}")"
-python3 -m venv "${INSTALL_DIR}"
+echo "==> Creating an isolated Python environment..."
+python3 -m venv "${TMP_ENV}"
+"${TMP_ENV}/bin/python" -m pip install --quiet "${TMP_DIR}/openmc"
 
-# 4. Install OpenMC and its dependencies via pip
-echo "==> Installing packages..."
-"${INSTALL_DIR}/bin/pip" install --quiet --upgrade pip
-"${INSTALL_DIR}/bin/pip" install --quiet "${TMP_DIR}/openmc"
-
-# 5. Symlink executable to ~/.local/bin
-mkdir -p "${BIN_DIR}"
-ln -sf "${INSTALL_DIR}/bin/openmc" "${BIN_DIR}/openmc"
-
-echo ""
-echo "==> OpenMC installed successfully!"
-
-if [[ ":${PATH}:" != *":${BIN_DIR}:"* ]]; then
-    echo ""
-    echo "Note: ${BIN_DIR} is not in your PATH."
-    echo "Add the following line to your ~/.bashrc or ~/.zshrc:"
-    echo "  export PATH=\"\${HOME}/.local/bin:\${PATH}\""
+echo "==> Installing executable..."
+if [[ -d "${INSTALL_DIR}" ]]; then
+    BACKUP_ENV="$(mktemp -d "${APP_DIR}/.env-backup.XXXXXXXX")"
+    rmdir "${BACKUP_ENV}"
+    mv "${INSTALL_DIR}" "${BACKUP_ENV}"
+fi
+if ! mv "${TMP_ENV}" "${INSTALL_DIR}"; then
+    if [[ -n "${BACKUP_ENV}" ]]; then
+        mv "${BACKUP_ENV}" "${INSTALL_DIR}"
+    fi
+    exit 1
 fi
 
+mkdir -p "${BIN_DIR}"
+ln -sf "${INSTALL_DIR}/bin/openmc" "${BIN_DIR}/openmc"
+if [[ -n "${BACKUP_ENV}" ]]; then
+    rm -rf "${BACKUP_ENV}"
+fi
+
+echo "==> OpenMC installed successfully!"
+if [[ ":${PATH}:" != *":${BIN_DIR}:"* ]]; then
+    echo "Note: ${BIN_DIR} is not in your PATH."
+    echo "For fish: fish_add_path ~/.local/bin"
+    echo 'For bash/zsh: export PATH="$HOME/.local/bin:$PATH"'
+fi
 echo "Run 'openmc --help' to get started."
