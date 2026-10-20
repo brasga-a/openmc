@@ -11,28 +11,26 @@ An open-source CLI tool for managing Minecraft servers on Linux.
 ## Requirements
 
 - **OS**: Linux
-- **Python**: `>= 3.14`
-- **Package Manager**: [uv](https://docs.astral.sh/uv/) (recommended)
+- **Python**: `>= 3.10` (`python3` and `python3-venv`)
+- **Git**: `git`
 
 ## Installation
 
-Clone the repository and install the project using `uv`:
+Install directly using `curl`:
 
 ```bash
-git clone <repository-url>
-cd openmc
-uv sync
+curl -fsSL https://raw.githubusercontent.com/brasga-a/openmc/master/install.sh | bash
 ```
 
-You can also install `openmc` globally as a CLI tool:
+### Manual Installation
 
 ```bash
-uv tool install .
+git clone https://github.com/brasga-a/openmc.git
+cd openmc
+./install.sh
 ```
 
 ## Usage
-
-If running inside the project environment with `uv`, prefix commands with `uv run`:
 
 ### Download a Server Loader
 
@@ -68,11 +66,13 @@ OpenMC stores its data in your user's local share directory following the XDG sp
 
 - **Database**: `~/.local/share/openmc/chest.db`
 - **Server JARs**: `~/.local/share/openmc/loaders/<version>.jar`
+- **CLI Environment**: `~/.local/share/openmc/env/`
 
 ## Project Structure
 
 ```text
 openmc/
+├── install.sh
 ├── pyproject.toml
 ├── README.md
 └── src/
