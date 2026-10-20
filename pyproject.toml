@@ -1,0 +1,20 @@
+[project]
+name = "openmc"
+version = "0.1.0"
+description = "An open-source CLI tool for managing Minecraft servers on Linux"
+readme = "README.md"
+authors = [
+    { email = "bradrugo@hotmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+openmc = "openmc:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
